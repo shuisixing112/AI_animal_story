@@ -1,0 +1,9 @@
+
+
+# Python
+__pycache__/
+
+
+# Firebase credentials
+ai-animal-story-firebase-adminsdk-fbsvc-4345751d44.json
+.env
