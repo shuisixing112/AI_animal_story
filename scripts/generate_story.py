@@ -38,7 +38,7 @@ today_paths = read_json_from_firebase(get_today_paths_path(year_month, TODAY))
 for cid, info in today_paths.items():
     theme_slug = info["theme"]
     log_path = info["log"]
-    txt_path = info["txt"]
+    # txt_path = info["txt"]
 
     # === 讀取角色卡 ===
     character_card = read_json_from_firebase(f"characters/data/{cid}.json")
@@ -67,35 +67,6 @@ for cid, info in today_paths.items():
     model = full_response["model"]
     tokens = count_tokens(system_prompt + user_prompt)
     duration = round(end_time - start_time, 2)
-
-    # # # === Prompt 串接 LLM ===
-    # start_time = time.time()
-    # system_prompt, user_prompt = call_llm_for_story(character_card, theme_slug, memory)
-    # # prompt = build_prompt(character, theme, recent_summary)
-    # # log_and_print(f"\n🟡 Prompt 組合完成，開始生成...\n", log_file_path)
-
-    # try:
-    #     response_raw = call_Deepseek_story(system_prompt, user_prompt)
-    #     text = response_raw["choices"][0]["message"]["content"]
-    #     print(text)
-    #     log_and_print(f"\n🟢 LLM 回應完成\n", log_file_path)
-
-    #     response = extract_response(response_raw["choices"][0]["message"]["content"])
-    #     end_time = time.time()
-    #     story = response["story"]
-    #     summary = response["summary"]
-    #     prompts = response["prompt_list"]
-
-    #     usage = response_raw.get("usage", {})
-    #     tokens_input = count_tokens(system_prompt + user_prompt)
-    #     tokens_output = usage.get("completion_tokens", 0)
-    #     cost_usd = 0.0
-    #     model = response_raw.get("model", "")
-    #     duration = round(end_time - start_time, 2)
-
-    # except Exception as e:
-    #     log_and_print(f"❌ 回應解析失敗: {e}\n", log_file_path)
-    #     raise
 
     # === 寫入 log.json ===
     log_data = read_json_from_firebase(log_path)
@@ -137,12 +108,8 @@ for cid, info in today_paths.items():
     PROMPTS:
     {prompts_formatted}
 
-    IMAGE URLs:
-    {images_formatted}
-
-    ------------------------------------------------------
     """
-    append_txt_to_firebase(txt_path, daily_entry)
+    # append_txt_to_firebase(txt_path, daily_entry)
 
     # 寫入週檔案（append）
     append_txt_to_firebase(weekly_txt_path, daily_entry)

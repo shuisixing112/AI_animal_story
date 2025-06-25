@@ -1,15 +1,15 @@
 # generate_image.py
 
 import time
-from config import TODAY, year_month, BASE_PATH, get_today_paths
-from utils import (
-    generate_image_from_prompt, upload_to_imgbb, write_json, 
-    get_log_path, generate_imgbb_name, slugify, log_and_print
-)
 import json
-from pathlib import Path
+from config import TODAY, year_month, get_today_paths
+from utils import (
+    generate_image_from_prompt, upload_to_imgbb, 
+    read_json_from_firebase, write_json_to_firebase, 
+    append_txt_to_firebase, generate_imgbb_name, 
+    slugify, log_and_print
+)
 
-log_file_path = BASE_PATH/"logs"/year_month/f"{TODAY}_setup_log.txt"
 
 # === 載入今日角色與主題資訊 ===
 today_paths = get_today_paths()
@@ -20,48 +20,48 @@ today_themes = [
 ]
 
 if not today_themes:
-    log_and_print(f"\n❌ 今天 {TODAY} 沒有要處理的角色與主題\n", log_file_path)
+    log_and_print(f"\n❌ 今天 {TODAY} 沒有要處理的角色與主題\n", "error")
     raise SystemExit
-print("🟢 generate_image.py started1")
+
 # === 開始逐一處理角色圖像 ===
 for entry in today_themes:
     today_cid = entry["character_id"]
     theme_slug = entry["theme"]
 
     log_path = today_paths[today_cid]["log"]
-    with open(log_path, "r", encoding="utf-8") as f:
-        log_data = json.load(f)
+    txt_path = today_paths[today_cid]["txt"]
 
+    log_data = read_json_from_firebase(log_path)
     prompts = log_data.get("prompt_list", [])
     image_urls = []
 
     for idx, prompt in enumerate(prompts, 1):
-        log_and_print(f"\n🎨 開始生成圖片 {idx}: {prompt}\n", log_file_path)
+        log_and_print(f"\n🎨 開始生成圖片 {idx}: {prompt}\n", "OK")
+
         img = generate_image_from_prompt(prompt)
         img_name = generate_imgbb_name(cid=today_cid, theme_slug=theme_slug, index=idx)
         print(f"DEBUG: 產生圖檔名稱：{img_name}")
+
         if img:
             url = upload_to_imgbb(img, img_name)
             if url:
                 image_urls.append(url)
-                log_and_print(f"✅ 上傳成功：\n{url}\n", log_file_path)
+                log_and_print(f"✅ 上傳成功：\n{url}\n", "OK")
             else:
-                log_and_print("⚠️ 上傳失敗\n", log_file_path)
+                log_and_print("⚠️ 上傳失敗\n", "warning")
         else:
-            log_and_print("⚠️ 生成失敗\n", log_file_path)
+            log_and_print("⚠️ 生成失敗\n", "error")
 
         time.sleep(1.5)  # 為保險起見避免過快請求
 
     log_data["images"] = image_urls
-    write_json(log_path, log_data)
+    write_json_to_firebase(log_path, log_data)
 
-    # === 同步更新角色 weekly txt ===
-    txt_path = today_paths[today_cid]["txt"]
-    with open(txt_path, "a", encoding="utf-8") as f:
-        f.write(f"Image URLs ({TODAY}):\n")
-        for url in image_urls:
-            f.write(f"- {url}\n")
-        f.write("\n------------------------------------------------------------\n")
+    # === 附加圖片網址至 weekly story txt ===
+    txt_block = f"Image_URLs ({TODAY}):\n"
+    txt_block += "\n".join(f"- {url}" for url in image_urls)
+    txt_block += "\n------------------------------------------------------------\n"
+    append_txt_to_firebase(txt_path, txt_block)
 
-    log_and_print(f"📦 圖片資訊已儲存至:\n {log_path}\n{txt_path}\n", log_file_path)
+    log_and_print(f"📦 圖片資訊已儲存至:\n{log_path}\n{txt_path}\n")
 
